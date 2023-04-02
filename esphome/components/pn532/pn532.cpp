@@ -19,9 +19,12 @@ void PN532::setup() {
 
   // Get version data
   if (!this->write_command_({PN532_COMMAND_VERSION_DATA})) {
-    ESP_LOGE(TAG, "Error sending version command");
-    this->mark_failed();
-    return;
+    ESP_LOGW(TAG, "Error sending version command, trying again...");
+    if (!this->write_command_({PN532_COMMAND_VERSION_DATA})) {
+      ESP_LOGE(TAG, "Error sending version command");
+      this->mark_failed();
+      return;
+    }
   }
 
   std::vector<uint8_t> version_data;
@@ -102,7 +105,7 @@ void PN532::loop() {
   std::vector<uint8_t> read;
   bool success = this->read_response(PN532_COMMAND_INLISTPASSIVETARGET, read);
 
-  this->requested_read_ = false;
+    this->requested_read_ = false;
 
   if (!success) {
     // Something failed
@@ -254,6 +257,14 @@ bool PN532::read_ack_() {
                   data[2] == 0x00 &&                     // start of packet
                   data[3] == 0xFF && data[4] == 0x00 &&  // ACK packet code
                   data[5] == 0xFF && data[6] == 0x00);   // postamble
+  bool matches_reset = (data[1] == 0x00 &&                     // preamble
+                         data[2] == 0x00 &&                     // start of packet
+                         data[3] == 0xFF && data[4] == 0x02 &&  // ACK packet code
+                         data[5] == 0xFE && data[6] == 0xD5);   // postamble
+  if (matches_reset) {
+    ESP_LOGD(TAG, "Got reset ACK");
+    // this->write_command_({PN532_COMMAND_VERSION_DATA});  // try again
+  }
   ESP_LOGV(TAG, "ACK valid: %s", YESNO(matches));
   return matches;
 }
