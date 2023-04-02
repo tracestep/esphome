@@ -80,6 +80,8 @@ class PN532 : public PollingComponent {
   bool clean_mifare_ultralight_();
 
   bool requested_read_{false};
+  bool waiting_response_{false};
+  uint32_t waiting_response_start_{0};
   std::vector<PN532BinarySensor *> binary_sensors_;
   std::vector<nfc::NfcOnTagTrigger *> triggers_ontag_;
   std::vector<nfc::NfcOnTagTrigger *> triggers_ontagremoved_;

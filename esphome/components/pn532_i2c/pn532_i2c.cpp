@@ -21,26 +21,17 @@ bool PN532I2C::read_data(std::vector<uint8_t> &data, uint8_t len) {
 
   std::vector<uint8_t> ready;
   ready.resize(1);
-  uint32_t start_time = millis();
-  while (true) {
-    if (this->read_bytes_raw(ready.data(), 1)) {
-      if (ready[0] == 0x01)
-        break;
-    }
-
-    if (millis() - start_time > 100) {
-      ESP_LOGV(TAG, "Timed out waiting for readiness from PN532!");
-      return false;
+  if (this->read_bytes_raw(ready.data(), 1)) {
+    if (ready[0] == 0x01) {
+      data.resize(len + 1);
+      this->read_bytes_raw(data.data(), len + 1);
+      return true;
     }
   }
-
-  data.resize(len + 1);
-  this->read_bytes_raw(data.data(), len + 1);
-  return true;
+  return false;
 }
 
 bool PN532I2C::read_response(uint8_t command, std::vector<uint8_t> &data) {
-  ESP_LOGV(TAG, "Reading response");
   uint8_t len = this->read_response_length_();
   if (len == 0) {
     return false;
