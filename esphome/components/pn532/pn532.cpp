@@ -133,9 +133,27 @@ void PN532::loop() {
     return;
 
   std::vector<uint8_t> read;
-  bool success = this->read_response(PN532_COMMAND_INLISTPASSIVETARGET, read);
+  bool success = false;
 
-  this->requested_read_ = false;
+  if (! this->waiting_response_) {
+    ESP_LOGV(TAG, "Reading response");
+    this->waiting_response_ = true;
+    this->waiting_response_start_ = millis();
+  }
+  if (this->waiting_response_) {
+    if (millis() - this->waiting_response_start_ > 100) {
+      ESP_LOGV(TAG, "Timed out waiting for readiness from PN532!");
+      success = false;
+    } else {
+      if (! this->read_response(PN532_COMMAND_INLISTPASSIVETARGET, read)) {
+        return;
+      } else {
+        success = true;
+      }
+    }
+    this->waiting_response_ = false;
+    this->requested_read_ = false;
+  }
 
   if (!success) {
     // Something failed
