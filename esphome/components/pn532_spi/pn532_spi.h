@@ -19,8 +19,8 @@ class PN532Spi : public pn532::PN532,
 
  protected:
   bool write_data(const std::vector<uint8_t> &data) override;
-  bool read_data(std::vector<uint8_t> &data, uint8_t len) override;
-  bool read_response(uint8_t command, std::vector<uint8_t> &data) override;
+  bool read_data(std::vector<uint8_t> &data, uint8_t len, bool block = true) override;
+  bool read_response(uint8_t command, std::vector<uint8_t> &data, bool block = true) override;
 };
 
 }  // namespace pn532_spi
