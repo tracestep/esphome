@@ -16,29 +16,34 @@ bool PN532I2C::write_data(const std::vector<uint8_t> &data) {
   return this->write(data.data(), data.size()) == i2c::ERROR_OK;
 }
 
-bool PN532I2C::read_data(std::vector<uint8_t> &data, uint8_t len) {
+bool PN532I2C::read_data(std::vector<uint8_t> &data, uint8_t len, bool block) {
   delay(1);
 
   std::vector<uint8_t> ready;
   ready.resize(1);
-  if (this->read_bytes_raw(ready.data(), 1)) {
-    if (ready[0] == 0x01) {
-      data.resize(len + 1);
-      this->read_bytes_raw(data.data(), len + 1);
-      return true;
+  uint32_t start_time = millis();
+  do {
+    if (this->read_bytes_raw(ready.data(), 1)) {
+      if (ready[0] == 0x01) {
+        data.resize(len + 1);
+        this->read_bytes_raw(data.data(), len + 1);
+        return true;
+      }
     }
-  }
+  } while (block && millis() - start_time < 100);
+  if (block)
+    ESP_LOGV(TAG, "Timed out waiting for readiness from PN532!");
   return false;
 }
 
-bool PN532I2C::read_response(uint8_t command, std::vector<uint8_t> &data) {
-  uint8_t len = this->read_response_length_();
+bool PN532I2C::read_response(uint8_t command, std::vector<uint8_t> &data, bool block) {
+  uint8_t len = this->read_response_length_(block);
   if (len == 0) {
     return false;
   }
 
   ESP_LOGV(TAG, "Reading response of length %d", len);
-  if (!this->read_data(data, 6 + len + 2)) {
+  if (!this->read_data(data, 6 + len + 2, block)) {
     ESP_LOGD(TAG, "No response data");
     return false;
   }
@@ -83,9 +88,9 @@ bool PN532I2C::read_response(uint8_t command, std::vector<uint8_t> &data) {
   return true;
 }
 
-uint8_t PN532I2C::read_response_length_() {
+uint8_t PN532I2C::read_response_length_(bool block) {
   std::vector<uint8_t> data;
-  if (!this->read_data(data, 6)) {
+  if (!this->read_data(data, 6, block)) {
     return 0;
   }
 

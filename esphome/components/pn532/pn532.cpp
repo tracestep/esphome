@@ -115,7 +115,7 @@ void PN532::loop() {
       ESP_LOGV(TAG, "Timed out waiting for readiness from PN532!");
       success = false;
     } else {
-      if (! this->read_response(PN532_COMMAND_INLISTPASSIVETARGET, read)) {
+      if (! this->read_response(PN532_COMMAND_INLISTPASSIVETARGET, read, false)) {
         return;
       } else {
         success = true;
@@ -267,7 +267,7 @@ bool PN532::read_ack_() {
   ESP_LOGV(TAG, "Reading ACK...");
 
   std::vector<uint8_t> data;
-  if (!this->read_data(data, 6)) {
+  if (!this->read_data(data, 6, false)) {
     return false;
   }
 
