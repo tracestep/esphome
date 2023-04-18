@@ -35,7 +35,7 @@ optional<uint32_t> DeepSleepComponent::get_run_duration_() const {
 
 void DeepSleepComponent::setup() {
   ESP_LOGCONFIG(TAG, "Setting up Deep Sleep...");
-  global_has_deep_sleep = true;
+  // global_has_deep_sleep = true;  // workaround for https://github.com/home-assistant/core/issues/91602
 
   const optional<uint32_t> run_duration = get_run_duration_();
   if (run_duration.has_value()) {
