@@ -104,23 +104,38 @@ bool PN532::powerdown() {
 }
 
 void PN532::update() {
-  if (!updates_enabled_)
+  if (!this->updates_enabled_)
     return;
 
   for (auto *obj : this->binary_sensors_)
     obj->on_scan_end();
 
-  if (this->status_has_warning()) {  // update at most once per minute if read failed
-    if (last_update_ && millis() - last_update_ < 60e3)
+  if (!this->status_has_warning()) {
+    this->retries_ = 0;
+    this->throttle_ = std::max((uint32_t)2e3, this->update_interval_);
+  } else {
+    if (millis() - this->last_update_ < this->throttle_)
       return;
+    switch (this->retries_) {
+      case 0:
+        this->retries_++;
+        this->throttle_ = std::max((uint32_t)5e3, this->update_interval_);
+        break;
+      case 1:
+        this->retries_++;
+        this->throttle_ = std::max((uint32_t)10e3, this->update_interval_);
+        break;
+      default:
+        this->throttle_ = std::max((uint32_t)60e3, this->update_interval_);
+    }
   }
-  last_update_ = millis();
+  this->last_update_ = millis();
   if (!this->write_command_({
           PN532_COMMAND_INLISTPASSIVETARGET,
           0x01,  // max 1 card
           0x00,  // baud rate ISO14443A (106 kbit/s)
       })) {
-    ESP_LOGW(TAG, "Requesting tag read failed, throttling updates!");
+    ESP_LOGW(TAG, "Requesting tag read failed. Throttling updates, next in %d s", this->throttle_ / 1000);
     this->status_set_warning();
     return;
   }
@@ -305,6 +320,13 @@ bool PN532::read_ack_() {
                   data[2] == 0x00 &&                     // start of packet
                   data[3] == 0xFF && data[4] == 0x00 &&  // ACK packet code
                   data[5] == 0xFF && data[6] == 0x00);   // postamble
+  bool matches_reset = (data[1] == 0x00 &&                     // preamble
+                         data[2] == 0x00 &&                     // start of packet
+                         data[3] == 0xFF && data[4] == 0x02 &&  // ACK packet code
+                         data[5] == 0xFE && data[6] == 0xD5);   // postamble
+  if (matches_reset) {
+    ESP_LOGD(TAG, "Got reset ACK");
+  }
   ESP_LOGV(TAG, "ACK valid: %s", YESNO(matches));
   return matches;
 }

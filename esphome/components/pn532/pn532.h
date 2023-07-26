@@ -85,8 +85,10 @@ class PN532 : public PollingComponent {
   bool updates_enabled_{true};
   bool requested_read_{false};
   bool waiting_response_{false};
-  uint32_t last_update_{0};
   uint32_t waiting_response_start_{0};
+  uint32_t last_update_{0};
+  uint32_t throttle_{0};
+  uint8_t retries_{0};
   std::vector<PN532BinarySensor *> binary_sensors_;
   std::vector<nfc::NfcOnTagTrigger *> triggers_ontag_;
   std::vector<nfc::NfcOnTagTrigger *> triggers_ontagremoved_;
