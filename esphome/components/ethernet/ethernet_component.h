@@ -21,6 +21,7 @@ enum EthernetType {
   ETHERNET_TYPE_IP101,
   ETHERNET_TYPE_JL1101,
   ETHERNET_TYPE_KSZ8081,
+  ETHERNET_TYPE_KSZ8081RNA,
 };
 
 struct ManualIP {
@@ -45,6 +46,7 @@ class EthernetComponent : public Component {
   void dump_config() override;
   float get_setup_priority() const override;
   bool can_proceed() override;
+  void on_shutdown() override { powerdown(); }
   bool is_connected();
 
   void set_phy_addr(uint8_t phy_addr);
@@ -58,6 +60,7 @@ class EthernetComponent : public Component {
   network::IPAddress get_ip_address();
   std::string get_use_address() const;
   void set_use_address(const std::string &use_address);
+  bool powerdown();
 
  protected:
   static void eth_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
@@ -65,6 +68,8 @@ class EthernetComponent : public Component {
 
   void start_connect_();
   void dump_connect_params_();
+  /// @brief Set `RMII Reference Clock Select` bit for KSZ8081.
+  void ksz8081_set_clock_reference_(esp_eth_mac_t *mac);
 
   std::string use_address_;
   uint8_t phy_addr_{0};
@@ -82,6 +87,7 @@ class EthernetComponent : public Component {
   uint32_t connect_begin_;
   esp_netif_t *eth_netif_{nullptr};
   esp_eth_handle_t eth_handle_;
+  esp_eth_phy_t *phy_{nullptr};
 };
 
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
