@@ -31,8 +31,9 @@ bool PN532I2C::read_data(std::vector<uint8_t> &data, uint8_t len, bool block) {
       }
     }
   } while (block && millis() - start_time < 100);
-  if (block)
+  if (block) {
     ESP_LOGV(TAG, "Timed out waiting for readiness from PN532!");
+  }
   return false;
 }
 
